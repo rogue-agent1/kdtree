@@ -1,26 +1,35 @@
 #!/usr/bin/env python3
-"""KD-tree for nearest neighbor. Input: 'x y' per line, query as args."""
-import sys, math
-class Node:
-    def __init__(self, pt, l=None, r=None, ax=0): self.pt,self.l,self.r,self.ax=pt,l,r,ax
-def build(pts, d=0):
-    if not pts: return None
-    pts.sort(key=lambda p:p[d%len(p)]); m=len(pts)//2
-    return Node(pts[m], build(pts[:m],d+1), build(pts[m+1:],d+1), d%len(pts[0]))
-def nearest(node, target, best=None, best_d=float('inf')):
-    if not node: return best, best_d
-    d = math.dist(node.pt, target)
-    if d < best_d: best, best_d = node.pt, d
-    ax = node.ax; diff = target[ax]-node.pt[ax]
-    close, far = (node.l, node.r) if diff<0 else (node.r, node.l)
-    best, best_d = nearest(close, target, best, best_d)
-    if abs(diff) < best_d: best, best_d = nearest(far, target, best, best_d)
-    return best, best_d
-pts = []
-for line in sys.stdin:
-    p = line.split()
-    if len(p)>=2: pts.append(tuple(float(x) for x in p))
-tree = build(pts)
-q = tuple(float(x) for x in sys.argv[1:]) if len(sys.argv)>1 else pts[0]
-nn, d = nearest(tree, q)
-print(f"Query: {q}\nNearest: {nn}\nDistance: {d:.4f}")
+"""K-D tree for nearest neighbor search."""
+import sys,math
+class KDNode:
+    def __init__(self,point,left=None,right=None,axis=0):
+        self.point=point;self.left=left;self.right=right;self.axis=axis
+def build(points,depth=0):
+    if not points: return None
+    k=len(points[0]); axis=depth%k
+    points.sort(key=lambda p:p[axis])
+    mid=len(points)//2
+    return KDNode(points[mid],build(points[:mid],depth+1),build(points[mid+1:],depth+1),axis)
+def dist(a,b): return math.sqrt(sum((x-y)**2 for x,y in zip(a,b)))
+def nearest(root,target,best=None,best_dist=float('inf')):
+    if root is None: return best,best_dist
+    d=dist(root.point,target)
+    if d<best_dist: best,best_dist=root.point,d
+    axis=root.axis; diff=target[axis]-root.point[axis]
+    close,far=(root.left,root.right) if diff<0 else (root.right,root.left)
+    best,best_dist=nearest(close,target,best,best_dist)
+    if abs(diff)<best_dist:
+        best,best_dist=nearest(far,target,best,best_dist)
+    return best,best_dist
+def main():
+    import random; random.seed(42)
+    pts=[(random.uniform(0,100),random.uniform(0,100)) for _ in range(1000)]
+    tree=build(list(pts))
+    query=(50.0,50.0)
+    nn,d=nearest(tree,query)
+    brute=min(pts,key=lambda p:dist(p,query))
+    print(f"Query: {query}")
+    print(f"KD-tree nearest: {nn} (dist={d:.4f})")
+    print(f"Brute force:     {brute} (dist={dist(brute,query):.4f})")
+    print(f"Match: {'✓' if nn==brute else '✗'}")
+if __name__=="__main__": main()
