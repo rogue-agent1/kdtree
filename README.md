@@ -1,5 +1,11 @@
 # kdtree
-K-D tree for nearest neighbor search. Zero dependencies.
+
+kdtree: K-D tree for spatial search.
+
+Single-file, zero-dependency Python CLI.
+
+## Usage
+
 ```bash
-python3 kdtree.py
+python3 kdtree.py test
 ```
